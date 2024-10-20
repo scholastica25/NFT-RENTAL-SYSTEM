@@ -86,3 +86,16 @@
   )
 )
 
+(define-public (end-rental (rental-id uint))
+  (let
+    (
+      (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
+    )
+    (asserts! (is-some (get renter rental)) err-not-rented)
+    (asserts! (>= block-height (get rental-end rental)) err-rental-expired)
+    (try! (nft-transfer? rented-nft rental-id (get owner rental) (unwrap! (get renter rental) err-not-rented)))
+    (map-delete token-rental (get token-id rental))
+    (map-delete rentals rental-id)
+    (ok true)
+  )
+)
