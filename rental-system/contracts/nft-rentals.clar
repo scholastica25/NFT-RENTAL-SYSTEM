@@ -65,3 +65,24 @@
     (ok rental-id)
   )
 )
+
+(define-public (rent-nft (rental-id uint))
+  (let
+    (
+      (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
+      (price (get price rental))
+    )
+    (asserts! (is-none (get renter rental)) err-already-rented)
+    (try! (stx-transfer? price tx-sender (get owner rental)))
+    (map-set rentals
+      rental-id
+      (merge rental {
+        renter: (some tx-sender),
+        rental-start: block-height,
+        rental-end: (+ block-height (get rental-end rental))
+      })
+    )
+    (ok true)
+  )
+)
+
