@@ -39,3 +39,29 @@
 (define-read-only (get-token-rental (token-id uint))
   (map-get? token-rental token-id)
 )
+
+;; Public functions
+(define-public (create-rental (token-id uint) (duration uint) (price uint))
+  (let
+    (
+      (rental-id (var-get next-rental-id))
+    )
+    (asserts! (is-eq tx-sender contract-owner) err-owner-only)
+    (asserts! (is-none (map-get? token-rental token-id)) err-already-rented)
+    (try! (nft-mint? rented-nft rental-id tx-sender))
+    (map-set rentals
+      rental-id
+      {
+        owner: tx-sender,
+        renter: none,
+        token-id: token-id,
+        rental-start: u0,
+        rental-end: u0,
+        price: price
+      }
+    )
+    (map-set token-rental token-id rental-id)
+    (var-set next-rental-id (+ rental-id u1))
+    (ok rental-id)
+  )
+)
