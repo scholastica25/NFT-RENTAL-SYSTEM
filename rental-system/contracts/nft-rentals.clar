@@ -29,3 +29,13 @@
 )
 
 (define-map token-rental uint uint)
+
+
+;; Read-only functions
+(define-read-only (get-rental (rental-id uint))
+  (map-get? rentals rental-id)
+)
+
+(define-read-only (get-token-rental (token-id uint))
+  (map-get? token-rental token-id)
+)
