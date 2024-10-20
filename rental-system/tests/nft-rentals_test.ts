@@ -143,3 +143,22 @@ Clarinet.test({
         block.receipts[2].result.expectErr().expectUint(105); // err-rental-expired
     },
 });
+
+Clarinet.test({
+    name: "Ensure that non-existent rentals cannot be interacted with",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const user1 = accounts.get('wallet_1')!;
+
+        let block = chain.mineBlock([
+            Tx.contractCall(CONTRACT_NAME, 'rent-nft', [types.uint(999)], user1.address),
+            Tx.contractCall(CONTRACT_NAME, 'end-rental', [types.uint(999)], user1.address),
+            Tx.contractCall(CONTRACT_NAME, 'cancel-rental', [types.uint(999)], user1.address),
+        ]);
+
+        assertEquals(block.receipts.length, 3);
+        block.receipts[0].result.expectErr().expectUint(102); // err-token-not-found
+        block.receipts[1].result.expectErr().expectUint(102); // err-token-not-found
+        block.receipts[2].result.expectErr().expectUint(102); // err-token-not-found
+    },
+});
