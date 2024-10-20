@@ -51,3 +51,32 @@ Clarinet.test({
         });
     },
 });
+
+
+Clarinet.test({
+    name: "Ensure that end-rental works correctly",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const owner = accounts.get('deployer')!;
+        const user1 = accounts.get('wallet_1')!;
+
+        let block = chain.mineBlock([
+            Tx.contractCall(CONTRACT_NAME, 'create-rental', [types.uint(1), types.uint(10), types.uint(1000000)], owner.address),
+            Tx.contractCall(CONTRACT_NAME, 'rent-nft', [types.uint(0)], user1.address),
+        ]);
+
+        // Fast-forward the chain
+        chain.mineEmptyBlockUntil(20);
+
+        block = chain.mineBlock([
+            Tx.contractCall(CONTRACT_NAME, 'end-rental', [types.uint(0)], user1.address),
+        ]);
+
+        assertEquals(block.receipts.length, 1);
+        block.receipts[0].result.expectOk().expectBool(true);
+
+        // Check that the rental was ended
+        const rental = chain.callReadOnlyFn(CONTRACT_NAME, 'get-rental', [types.uint(0)], owner.address);
+        rental.result.expectNone();
+    },
+});
