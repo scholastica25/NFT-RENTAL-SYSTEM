@@ -99,3 +99,18 @@
     (ok true)
   )
 )
+
+
+(define-public (cancel-rental (rental-id uint))
+  (let
+    (
+      (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
+    )
+    (asserts! (is-eq tx-sender (get owner rental)) err-not-token-owner)
+    (asserts! (is-none (get renter rental)) err-already-rented)
+    (try! (nft-burn? rented-nft rental-id tx-sender))
+    (map-delete token-rental (get token-id rental))
+    (map-delete rentals rental-id)
+    (ok true)
+  )
+)
