@@ -102,3 +102,24 @@ Clarinet.test({
         rental.result.expectNone();
     },
 });
+
+Clarinet.test({
+    name: "Ensure that rented NFTs cannot be rented again",
+    async fn(chain: Chain, accounts: Map<string, Account>)
+    {
+        const owner = accounts.get('deployer')!;
+        const user1 = accounts.get('wallet_1')!;
+        const user2 = accounts.get('wallet_2')!;
+
+        let block = chain.mineBlock([
+            Tx.contractCall(CONTRACT_NAME, 'create-rental', [types.uint(1), types.uint(100), types.uint(1000000)], owner.address),
+            Tx.contractCall(CONTRACT_NAME, 'rent-nft', [types.uint(0)], user1.address),
+            Tx.contractCall(CONTRACT_NAME, 'rent-nft', [types.uint(0)], user2.address),
+        ]);
+
+        assertEquals(block.receipts.length, 3);
+        block.receipts[0].result.expectOk().expectUint(0);
+        block.receipts[1].result.expectOk().expectBool(true);
+        block.receipts[2].result.expectErr().expectUint(103); // err-already-rented
+    },
+});
