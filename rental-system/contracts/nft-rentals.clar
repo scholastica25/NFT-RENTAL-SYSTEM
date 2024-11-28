@@ -9,8 +9,14 @@
 (define-constant err-not-rented (err u104))
 (define-constant err-rental-expired (err u105))
 
+(define-constant err-insufficient-funds (err u106))
+(define-constant err-invalid-rental-duration (err u107))
+(define-constant err-cannot-transfer-rented-nft (err u108))
+
 ;; Data Variables
 (define-data-var next-rental-id uint u0)
+
+(define-data-var max-rental-duration uint u144) 
 
 ;; Define the NFT
 (define-non-fungible-token rented-nft uint)
@@ -24,11 +30,14 @@
     token-id: uint,
     rental-start: uint,
     rental-end: uint,
-    price: uint
+    price: uint,
+    is-active: bool
   }
 )
 
 (define-map token-rental uint uint)
+
+
 
 
 ;; Read-only functions
@@ -57,7 +66,8 @@
         token-id: token-id,
         rental-start: u0,
         rental-end: u0,
-        price: price
+        price: price,
+        is-active: true
       }
     )
     (map-set token-rental token-id rental-id)
