@@ -35,6 +35,19 @@
   }
 )
 
+;; Dispute Resolution Mechanism
+(define-map rental-disputes
+  {
+    rental-id: uint,
+    disputant: principal
+  }
+  {
+    dispute-reason: (string-utf8 100),
+    dispute-status: (string-ascii 20),
+    disputed-amount: uint
+  }
+)
+
 (define-map token-rental uint uint)
 
 (define-map rental-escrow 
@@ -202,3 +215,76 @@
     (ok true)
   )
 )
+
+;; Initiate Dispute Function
+(define-public (initiate-dispute (rental-id uint) (dispute-reason (string-utf8 100)))
+  (let
+    (
+      (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
+      (renter (unwrap! (get renter rental) err-not-rented))
+    )
+    ;; Ensure only renter or owner can initiate dispute
+    (asserts! 
+      (or 
+        (is-eq tx-sender (get owner rental))
+        (is-eq tx-sender renter)
+      ) 
+      err-not-token-owner
+    )
+    
+    ;; Record dispute
+    (map-set rental-disputes
+      {
+        rental-id: rental-id,
+        disputant: tx-sender
+      }
+      {
+        dispute-reason: dispute-reason,
+        dispute-status: "PENDING",
+        disputed-amount: (get price rental)
+      }
+    )
+    
+    (ok true)
+  )
+)
+
+;; Resolve Dispute Function (Only by Contract Owner)
+(define-public (resolve-dispute (rental-id uint) (disputant principal) (resolution (string-ascii 20)))
+  (let
+    (
+      (dispute (unwrap! 
+        (map-get? rental-disputes 
+          {
+            rental-id: rental-id, 
+            disputant: disputant
+          }
+        ) 
+        err-token-not-found
+      ))
+      (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
+    )
+    ;; Only contract owner can resolve
+    (asserts! (is-eq tx-sender contract-owner) err-owner-only)
+    
+    ;; Update dispute status
+    (map-set rental-disputes
+      {
+        rental-id: rental-id,
+        disputant: disputant
+      }
+      (merge dispute {
+        dispute-status: resolution
+      })
+    )
+    
+    ;; Handle potential refund or other resolution logic
+    (if (is-eq resolution "REFUND")
+      (try! (stx-transfer? (get price rental) (as-contract tx-sender) disputant))
+      true
+    )
+    
+    (ok true)
+  )
+)
+
