@@ -288,3 +288,30 @@
   )
 )
 
+
+;; Whitelist Mechanism for Rentals
+(define-map rental-whitelist principal bool)
+
+;; Function to add user to whitelist
+(define-public (add-to-whitelist (user principal))
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-owner-only)
+    (map-set rental-whitelist user true)
+    (ok true)
+  )
+)
+
+;; Function to remove user from whitelist
+(define-public (remove-from-whitelist (user principal))
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-owner-only)
+    (map-set rental-whitelist user false)
+    (ok true)
+  )
+)
+
+;; Check if user is whitelisted
+(define-read-only (is-whitelisted (user principal))
+  (default-to false (map-get? rental-whitelist user))
+)
+
