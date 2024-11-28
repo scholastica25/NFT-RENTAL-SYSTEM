@@ -178,3 +178,27 @@
     (ok true)
   )
 )
+
+(define-public (extend-rental (rental-id uint) (additional-blocks uint))
+  (let
+    (
+      (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
+      (current-renter (unwrap! (get renter rental) err-not-rented))
+      (max-duration (var-get max-rental-duration))
+      (new-end (+ (get rental-end rental) additional-blocks))
+    )
+    ;; Validate extension
+    (asserts! (is-eq tx-sender current-renter) err-not-token-owner)
+    (asserts! (<= (- new-end block-height) max-duration) err-invalid-rental-duration)
+    
+    ;; Update rental end time
+    (map-set rentals
+      rental-id
+      (merge rental {
+        rental-end: new-end
+      })
+    )
+    
+    (ok true)
+  )
+)
