@@ -315,3 +315,42 @@
   (default-to false (map-get? rental-whitelist user))
 )
 
+
+;; Bulk Rental Management Functions
+(define-public (bulk-create-rentals 
+  (token-ids (list 10 uint)) 
+  (durations (list 10 uint)) 
+  (prices (list 10 uint))
+)
+  (let
+    (
+      (results 
+        (map create-rental 
+          token-ids 
+          durations 
+          prices
+        )
+      )
+    )
+    (ok results)
+  )
+)
+
+;; Batch Rental Extension
+(define-public (bulk-extend-rentals 
+  (rental-ids (list 10 uint)) 
+  (additional-blocks (list 10 uint))
+)
+  (let
+    (
+      (results 
+        (map extend-rental 
+          rental-ids 
+          additional-blocks
+        )
+      )
+    )
+    (ok results)
+  )
+)
+
