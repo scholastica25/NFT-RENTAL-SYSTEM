@@ -354,3 +354,33 @@
   )
 )
 
+
+;; Rental Price Suggestion Function
+(define-read-only (suggest-rental-price (token-id uint))
+  (let
+    (
+      (existing-rental (map-get? token-rental token-id))
+    )
+    (if (is-some existing-rental)
+      ;; If already rented, suggest a higher price
+      (some (* (get price (unwrap-panic (map-get? rentals (unwrap-panic existing-rental)))) u2))
+      ;; If not rented, return none
+      none
+    )
+  )
+)
+
+;; Rental Health Check Function
+(define-read-only (check-rental-health (rental-id uint))
+  (let
+    (
+      (rental (unwrap! (map-get? rentals rental-id) none))
+      (current-block block-height)
+    )
+    (some {
+      is-active: (get is-active rental),
+      time-remaining: (- (get rental-end rental) current-block),
+      is-expired: (> current-block (get rental-end rental))
+    })
+  )
+)
