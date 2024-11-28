@@ -75,10 +75,16 @@
   (let
     (
       (rental-id (var-get next-rental-id))
+      (max-duration (var-get max-rental-duration))
     )
     (asserts! (is-eq tx-sender contract-owner) err-owner-only)
     (asserts! (is-none (map-get? token-rental token-id)) err-already-rented)
+    (asserts! (<= duration max-duration) err-invalid-rental-duration)
+    
+    ;; Mint NFT representing the rental
     (try! (nft-mint? rented-nft rental-id tx-sender))
+    
+    ;; Create rental entry
     (map-set rentals
       rental-id
       {
@@ -91,8 +97,13 @@
         is-active: true
       }
     )
+    
+    ;; Mark token as rented
     (map-set token-rental token-id rental-id)
+    
+    ;; Increment rental ID
     (var-set next-rental-id (+ rental-id u1))
+    
     (ok rental-id)
   )
 )
@@ -121,27 +132,49 @@
   (let
     (
       (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
+      (escrow-amount (unwrap! 
+        (map-get? rental-escrow {
+          rental-id: rental-id, 
+          renter: (unwrap! (get renter rental) err-not-rented)
+        }) 
+        err-not-rented
+      ))
     )
+    ;; Validate rental conditions
     (asserts! (is-some (get renter rental)) err-not-rented)
     (asserts! (>= block-height (get rental-end rental)) err-rental-expired)
+    
+    ;; Transfer NFT back to owner
     (try! (nft-transfer? rented-nft rental-id (get owner rental) (unwrap! (get renter rental) err-not-rented)))
+    
+    ;; Clean up rental and token mappings
     (map-delete token-rental (get token-id rental))
     (map-delete rentals rental-id)
+    (map-delete rental-escrow {
+      rental-id: rental-id, 
+      renter: (unwrap! (get renter rental) err-not-rented)
+    })
+    
     (ok true)
   )
 )
-
 
 (define-public (cancel-rental (rental-id uint))
   (let
     (
       (rental (unwrap! (map-get? rentals rental-id) err-token-not-found))
     )
+    ;; Validate cancellation conditions
     (asserts! (is-eq tx-sender (get owner rental)) err-not-token-owner)
     (asserts! (is-none (get renter rental)) err-already-rented)
+    
+    ;; Burn the rental NFT
     (try! (nft-burn? rented-nft rental-id tx-sender))
+    
+    ;; Clean up mappings
     (map-delete token-rental (get token-id rental))
     (map-delete rentals rental-id)
+    
     (ok true)
   )
 )
