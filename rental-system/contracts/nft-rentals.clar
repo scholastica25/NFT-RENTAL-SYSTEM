@@ -37,6 +37,14 @@
 
 (define-map token-rental uint uint)
 
+(define-map rental-escrow 
+  {
+    rental-id: uint, 
+    renter: principal
+  }
+  uint
+)
+
 
 
 
@@ -47,6 +55,19 @@
 
 (define-read-only (get-token-rental (token-id uint))
   (map-get? token-rental token-id)
+)
+
+(define-read-only (get-max-rental-duration)
+  (var-get max-rental-duration)
+)
+
+;; Admin functions
+(define-public (set-max-rental-duration (new-duration uint))
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) err-owner-only)
+    (var-set max-rental-duration new-duration)
+    (ok true)
+  )
 )
 
 ;; Public functions
